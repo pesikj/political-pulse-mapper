@@ -10,6 +10,8 @@ import { LoadingState, CompassSkeleton } from '@/components/LoadingState';
 import { fetchCountries, fetchParties } from '@/data/mockData';
 import { Country, PoliticalParty, Ideology } from '@/types/political';
 
+// Multi-country selector implementation
+
 const Index = () => {
   const [selectedCountries, setSelectedCountries] = useState<Country[]>([]);
   const [selectedParty, setSelectedParty] = useState<PoliticalParty | null>(null);
