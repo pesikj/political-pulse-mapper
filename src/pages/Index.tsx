@@ -11,7 +11,7 @@ import { fetchCountries, fetchParties } from '@/data/mockData';
 import { Country, PoliticalParty, Ideology } from '@/types/political';
 
 const Index = () => {
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedCountries, setSelectedCountries] = useState<Country[]>([]);
   const [selectedParty, setSelectedParty] = useState<PoliticalParty | null>(null);
   const [visibleIdeologies, setVisibleIdeologies] = useState<Set<Ideology>>(
     new Set(['liberal', 'conservative', 'libertarian', 'authoritarian', 'centrist', 'socialist', 'green'])
@@ -25,11 +25,17 @@ const Index = () => {
     queryFn: fetchCountries,
   });
 
-  // Fetch parties for selected country
+  // Fetch parties for selected countries
   const { data: parties = [], isLoading: isLoadingParties } = useQuery({
-    queryKey: ['parties', selectedCountry?.code],
-    queryFn: () => fetchParties(selectedCountry?.code || ''),
-    enabled: !!selectedCountry,
+    queryKey: ['parties', selectedCountries.map(c => c.code).join(',')],
+    queryFn: async () => {
+      if (selectedCountries.length === 0) return [];
+      const allParties = await Promise.all(
+        selectedCountries.map(country => fetchParties(country.code))
+      );
+      return allParties.flat();
+    },
+    enabled: selectedCountries.length > 0,
   });
 
   // Filter parties based on visible ideologies and search query
@@ -53,8 +59,8 @@ const Index = () => {
     return counts;
   }, [parties]);
 
-  const handleCountrySelect = (country: Country) => {
-    setSelectedCountry(country);
+  const handleCountrySelect = (countries: Country[]) => {
+    setSelectedCountries(countries);
     setSelectedParty(null);
     setIsDrawerOpen(false);
   };
@@ -92,13 +98,13 @@ const Index = () => {
             <div className="flex-1">
               <CountrySelector
                 countries={countries}
-                selectedCountry={selectedCountry}
+                selectedCountries={selectedCountries}
                 onCountrySelect={handleCountrySelect}
                 isLoading={isLoadingCountries}
               />
             </div>
             
-            {selectedCountry && (
+            {selectedCountries.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -119,7 +125,7 @@ const Index = () => {
 
         {/* Main Content */}
         <div className="min-h-[600px]">
-          {!selectedCountry ? (
+          {selectedCountries.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -132,7 +138,7 @@ const Index = () => {
                   Welcome to the World Political Compass
                 </h2>
                 <p className="text-lg text-muted-foreground mb-8">
-                  Select a country above to explore the political landscape and see where parties position themselves on economic and personal freedom.
+                  Select one or more countries above to explore the political landscape and see where parties position themselves on economic and personal freedom.
                 </p>
                 <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                   <div className="text-center">
