@@ -61,7 +61,35 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Political compass specific colors
+				compass: {
+					bg: 'hsl(var(--compass-bg))',
+					grid: 'hsl(var(--compass-grid))',
+					axis: 'hsl(var(--compass-axis))'
+				},
+				ideology: {
+					liberal: 'hsl(var(--ideology-liberal))',
+					conservative: 'hsl(var(--ideology-conservative))',
+					libertarian: 'hsl(var(--ideology-libertarian))',
+					authoritarian: 'hsl(var(--ideology-authoritarian))',
+					centrist: 'hsl(var(--ideology-centrist))',
+					socialist: 'hsl(var(--ideology-socialist))',
+					green: 'hsl(var(--ideology-green))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-bg': 'var(--gradient-bg)',
+				'gradient-compass': 'var(--gradient-compass)'
+			},
+			boxShadow: {
+				'compass': 'var(--shadow-compass)',
+				'card': 'var(--shadow-card)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+				'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

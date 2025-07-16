@@ -1,12 +1,184 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AppHeader } from '@/components/AppHeader';
+import { CountrySelector } from '@/components/CountrySelector';
+import { PoliticalCompass } from '@/components/PoliticalCompass';
+import { PartyDetailDrawer } from '@/components/PartyDetailDrawer';
+import { IdeologyLegend } from '@/components/IdeologyLegend';
+import { LoadingState, CompassSkeleton } from '@/components/LoadingState';
+import { fetchCountries, fetchParties } from '@/data/mockData';
+import { Country, PoliticalParty, Ideology } from '@/types/political';
 
 const Index = () => {
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedParty, setSelectedParty] = useState<PoliticalParty | null>(null);
+  const [visibleIdeologies, setVisibleIdeologies] = useState<Set<Ideology>>(
+    new Set(['liberal', 'conservative', 'libertarian', 'authoritarian', 'centrist', 'socialist', 'green'])
+  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Fetch countries
+  const { data: countries = [], isLoading: isLoadingCountries } = useQuery({
+    queryKey: ['countries'],
+    queryFn: fetchCountries,
+  });
+
+  // Fetch parties for selected country
+  const { data: parties = [], isLoading: isLoadingParties } = useQuery({
+    queryKey: ['parties', selectedCountry?.code],
+    queryFn: () => fetchParties(selectedCountry?.code || ''),
+    enabled: !!selectedCountry,
+  });
+
+  // Filter parties based on visible ideologies and search query
+  const filteredParties = useMemo(() => {
+    return parties.filter(party => {
+      const matchesIdeology = visibleIdeologies.has(party.ideology);
+      const matchesSearch = searchQuery === '' || 
+        party.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        party.shortName.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesIdeology && matchesSearch;
+    });
+  }, [parties, visibleIdeologies, searchQuery]);
+
+  // Count parties by ideology
+  const partyCounts = useMemo(() => {
+    const counts: Partial<Record<Ideology, number>> = {};
+    parties.forEach(party => {
+      counts[party.ideology] = (counts[party.ideology] || 0) + 1;
+    });
+    return counts;
+  }, [parties]);
+
+  const handleCountrySelect = (country: Country) => {
+    setSelectedCountry(country);
+    setSelectedParty(null);
+    setIsDrawerOpen(false);
+  };
+
+  const handlePartyClick = (party: PoliticalParty) => {
+    setSelectedParty(party);
+    setIsDrawerOpen(true);
+  };
+
+  const handleToggleIdeology = (ideology: Ideology) => {
+    setVisibleIdeologies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ideology)) {
+        newSet.delete(ideology);
+      } else {
+        newSet.add(ideology);
+      }
+      return newSet;
+    });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gradient-bg">
+      <AppHeader />
+      
+      <main className="container mx-auto px-6 py-8">
+        {/* Controls Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex-1">
+              <CountrySelector
+                countries={countries}
+                selectedCountry={selectedCountry}
+                onCountrySelect={handleCountrySelect}
+                isLoading={isLoadingCountries}
+              />
+            </div>
+            
+            {selectedCountry && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="lg:flex-2 w-full lg:max-w-2xl"
+              >
+                <IdeologyLegend
+                  visibleIdeologies={visibleIdeologies}
+                  onToggleIdeology={handleToggleIdeology}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  partyCounts={partyCounts}
+                />
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Main Content */}
+        <div className="min-h-[600px]">
+          {!selectedCountry ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="text-center py-20"
+            >
+              <div className="max-w-md mx-auto">
+                <div className="text-6xl mb-6">🌍</div>
+                <h2 className="text-3xl font-bold mb-4 text-foreground">
+                  Welcome to the World Political Compass
+                </h2>
+                <p className="text-lg text-muted-foreground mb-8">
+                  Select a country above to explore the political landscape and see where parties position themselves on economic and personal freedom.
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                  <div className="text-center">
+                    <div className="font-medium">Economic Axis</div>
+                    <div>Left ← → Right</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">Personal Axis</div>
+                    <div>Authoritarian ↑ ↓ Libertarian</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : isLoadingParties ? (
+            <CompassSkeleton />
+          ) : filteredParties.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-20"
+            >
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold mb-2">No parties found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your filters or search criteria.
+              </p>
+            </motion.div>
+          ) : (
+            <PoliticalCompass
+              parties={filteredParties}
+              onPartyClick={handlePartyClick}
+              selectedParty={selectedParty}
+            />
+          )}
+        </div>
+      </main>
+
+      {/* Party Detail Drawer */}
+      <PartyDetailDrawer
+        party={selectedParty}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedParty(null);
+        }}
+      />
     </div>
   );
 };

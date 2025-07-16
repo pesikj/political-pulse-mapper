@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 240 10% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -17,7 +17,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 262 76% 59%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -26,17 +26,44 @@ All colors MUST be HSL.
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 262 76% 59%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 262 76% 59%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Political compass specific colors */
+    --compass-bg: 240 10% 99%;
+    --compass-grid: 220 13% 91%;
+    --compass-axis: 215.4 16.3% 46.9%;
+    
+    /* Ideology colors */
+    --ideology-liberal: 200 100% 50%;
+    --ideology-conservative: 346 87% 58%;
+    --ideology-libertarian: 45 93% 58%;
+    --ideology-authoritarian: 262 83% 58%;
+    --ideology-centrist: 214 20% 69%;
+    --ideology-socialist: 0 72% 51%;
+    --ideology-green: 120 69% 42%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 76% 59%), hsl(292 84% 61%));
+    --gradient-bg: linear-gradient(180deg, hsl(240 10% 99%), hsl(240 10% 96%));
+    --gradient-compass: linear-gradient(135deg, hsl(240 10% 99%) 0%, hsl(240 8% 97%) 100%);
+    
+    /* Shadows */
+    --shadow-compass: 0 20px 25px -5px hsl(262 76% 59% / 0.1), 0 10px 10px -5px hsl(262 76% 59% / 0.04);
+    --shadow-card: 0 4px 6px -1px hsl(220 13% 91% / 0.1), 0 2px 4px -1px hsl(220 13% 91% / 0.06);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     --sidebar-background: 0 0% 98%;
 
@@ -59,14 +86,14 @@ All colors MUST be HSL.
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 217.2 32.6% 17.5%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 262 76% 59%;
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -74,7 +101,7 @@ All colors MUST be HSL.
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 262 76% 59%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -82,7 +109,20 @@ All colors MUST be HSL.
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 262 76% 59%;
+    
+    /* Dark mode compass colors */
+    --compass-bg: 217.2 32.6% 17.5%;
+    --compass-grid: 217.2 32.6% 25%;
+    --compass-axis: 215 20.2% 65.1%;
+    
+    /* Dark mode gradients */
+    --gradient-bg: linear-gradient(180deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 17.5%));
+    --gradient-compass: linear-gradient(135deg, hsl(217.2 32.6% 17.5%) 0%, hsl(217.2 32.6% 20%) 100%);
+    
+    /* Dark mode shadows */
+    --shadow-compass: 0 20px 25px -5px hsl(222.2 84% 4.9% / 0.5), 0 10px 10px -5px hsl(222.2 84% 4.9% / 0.2);
+    --shadow-card: 0 4px 6px -1px hsl(217.2 32.6% 17.5% / 0.3), 0 2px 4px -1px hsl(217.2 32.6% 17.5% / 0.1);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
