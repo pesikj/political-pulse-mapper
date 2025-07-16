@@ -56,7 +56,7 @@ export function CountrySelector({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-sm"
+      className="w-full max-w-lg"
     >
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -65,7 +65,7 @@ export function CountrySelector({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between rounded-2xl border-2 h-12 px-4",
+              "w-full justify-between rounded-2xl border-2 h-14 px-6 text-lg",
               "bg-card/50 backdrop-blur-sm",
               "hover:bg-card/80 transition-all duration-300",
               "focus:ring-2 focus:ring-primary/20",
@@ -114,7 +114,7 @@ export function CountrySelector({
           </Button>
         </PopoverTrigger>
         
-        <PopoverContent className="w-full p-0 rounded-2xl border-2">
+        <PopoverContent className="w-[32rem] p-0 rounded-2xl border-2">
           <Command>
             <CommandInput 
               placeholder="Search countries..." 
