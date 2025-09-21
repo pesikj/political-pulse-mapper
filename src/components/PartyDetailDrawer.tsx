@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Calendar, Users, MapPin } from 'lucide-react';
+import { X, ExternalLink, Calendar, Users, MapPin, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { PoliticalParty, IDEOLOGY_LABELS, IDEOLOGY_COLORS } from '@/types/political';
 import { cn } from '@/lib/utils';
+import { PlatformEvaluator } from './PlatformEvaluator';
 
 interface PartyDetailDrawerProps {
   party: PoliticalParty | null;
@@ -14,6 +15,8 @@ interface PartyDetailDrawerProps {
 }
 
 export function PartyDetailDrawer({ party, isOpen, onClose }: PartyDetailDrawerProps) {
+  const [showEvaluator, setShowEvaluator] = useState(false);
+  
   if (!party) return null;
 
   const drawerVariants = {
@@ -154,19 +157,37 @@ export function PartyDetailDrawer({ party, isOpen, onClose }: PartyDetailDrawerP
                 </p>
               </div>
 
-              {/* Website Link */}
-              {party.website && (
+              {/* Action Buttons */}
+              <div className="space-y-3">
                 <Button
-                  variant="outline"
+                  variant="default"
                   className="w-full rounded-xl"
-                  onClick={() => window.open(party.website, '_blank')}
+                  onClick={() => setShowEvaluator(true)}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Visit Official Website
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  Fact-Check Platform
                 </Button>
-              )}
+                
+                {party.website && (
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl"
+                    onClick={() => window.open(party.website, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Visit Official Website
+                  </Button>
+                )}
+              </div>
             </div>
           </motion.div>
+          
+          {/* Platform Evaluator */}
+          <PlatformEvaluator
+            party={party}
+            isOpen={showEvaluator}
+            onClose={() => setShowEvaluator(false)}
+          />
         </>
       )}
     </AnimatePresence>
