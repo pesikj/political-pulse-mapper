@@ -105,23 +105,6 @@ const Index = () => {
                 isLoading={isLoadingCountries}
               />
             </div>
-            
-            {selectedCountries.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="lg:flex-2 w-full lg:max-w-2xl"
-              >
-                <IdeologyLegend
-                  visibleIdeologies={visibleIdeologies}
-                  onToggleIdeology={handleToggleIdeology}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  partyCounts={partyCounts}
-                />
-              </motion.div>
-            )}
           </div>
         </motion.div>
 
@@ -176,6 +159,24 @@ const Index = () => {
             />
           )}
         </div>
+
+        {/* Political Ideologies Section - Bottom of Page */}
+        {selectedCountries.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-12"
+          >
+            <IdeologyLegend
+              visibleIdeologies={visibleIdeologies}
+              onToggleIdeology={handleToggleIdeology}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              partyCounts={partyCounts}
+            />
+          </motion.div>
+        )}
       </main>
 
       {/* Party Detail Drawer */}
