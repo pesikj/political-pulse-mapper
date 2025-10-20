@@ -7,7 +7,7 @@ import { PoliticalCompass } from '@/components/PoliticalCompass';
 import { PartyDetailDrawer } from '@/components/PartyDetailDrawer';
 import { IdeologyLegend } from '@/components/IdeologyLegend';
 import { LoadingState, CompassSkeleton } from '@/components/LoadingState';
-import { fetchCountries, fetchParties } from '@/data/mockData';
+import { fetchCountries, fetchParties } from '@/data/databaseService';
 import { Country, PoliticalParty, Ideology } from '@/types/political';
 
 // Multi-country selector implementation

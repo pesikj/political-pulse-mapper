@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, Info, ExternalLink, Download } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { PoliticalParty } from '@/types/political';
+import { PoliticalParty, PolicyAnalysis } from '@/types/political';
+import { fetchPartyPolicies } from '@/data/databaseService';
 
 interface PlatformEvaluatorProps {
   party: PoliticalParty | null;
@@ -14,54 +14,48 @@ interface PlatformEvaluatorProps {
   onClose: () => void;
 }
 
-interface PolicyAnalysis {
+// Helper to categorize policies based on their categories
+interface CategorizedPolicy {
   category: string;
-  promises: Array<{
-    promise: string;
-    feasibility: 'high' | 'medium' | 'low';
-    evidence: string;
-    sources: string[];
-    factCheck: 'verified' | 'disputed' | 'unclear';
-  }>;
+  policies: PolicyAnalysis[];
 }
 
 export function PlatformEvaluator({ party, isOpen, onClose }: PlatformEvaluatorProps) {
   if (!party) return null;
 
-  // Mock data - in a real app this would come from an API
-  const analysisData: PolicyAnalysis[] = [
-    {
-      category: "Economic Policy",
-      promises: [
-        {
-          promise: "Reduce corporate tax rate to boost business investment",
-          feasibility: "medium",
-          evidence: "Similar policies in neighboring countries showed mixed results with 2-4% GDP growth but also increased inequality.",
-          sources: ["Economic Research Institute 2023", "Tax Policy Center Analysis"],
-          factCheck: "verified"
-        },
-        {
-          promise: "Create 1 million new jobs in renewable energy sector",
-          feasibility: "high",
-          evidence: "Current market trends and government investment capacity support this target over 5-year period.",
-          sources: ["Green Jobs Report 2024", "Energy Transition Analysis"],
-          factCheck: "verified"
-        }
-      ]
-    },
-    {
-      category: "Social Policy",
-      promises: [
-        {
-          promise: "Universal basic healthcare for all citizens",
-          feasibility: "low",
-          evidence: "Current budget projections show significant funding gap. Would require 25% increase in government spending.",
-          sources: ["Healthcare Economics Study", "Budget Analysis 2024"],
-          factCheck: "disputed"
-        }
-      ]
-    }
-  ];
+  // Fetch real policy data from database
+  const { data: policies = [], isLoading } = useQuery({
+    queryKey: ['partyPolicies', party.id],
+    queryFn: () => fetchPartyPolicies(party.id),
+    enabled: isOpen && !!party.id,
+  });
+
+  // Group policies by their primary category
+  const categorizedPolicies = useMemo<CategorizedPolicy[]>(() => {
+    const groups: Record<string, PolicyAnalysis[]> = {
+      'Economic': [],
+      'Authority': [],
+      'Other': []
+    };
+
+    policies.forEach(policy => {
+      const primaryCategory = policy.categories[0]?.toLowerCase() || '';
+
+      // Categorize based on keywords
+      if (primaryCategory.includes('left') || primaryCategory.includes('right')) {
+        groups['Economic'].push(policy);
+      } else if (primaryCategory.includes('authoritarian') || primaryCategory.includes('libertarian')) {
+        groups['Authority'].push(policy);
+      } else {
+        groups['Other'].push(policy);
+      }
+    });
+
+    // Convert to array and filter out empty categories
+    return Object.entries(groups)
+      .filter(([_, policies]) => policies.length > 0)
+      .map(([category, policies]) => ({ category, policies }));
+  }, [policies]);
 
   const drawerVariants = {
     hidden: { 
@@ -92,25 +86,67 @@ export function PlatformEvaluator({ party, isOpen, onClose }: PlatformEvaluatorP
     exit: { opacity: 0 }
   };
 
-  const getFeasibilityColor = (feasibility: string) => {
-    switch (feasibility) {
-      case 'high': return 'text-green-600 bg-green-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'low': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getFactCheckIcon = (factCheck: string) => {
-    switch (factCheck) {
-      case 'verified': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'disputed': return <AlertCircle className="h-4 w-4 text-red-600" />;
-      case 'unclear': return <Info className="h-4 w-4 text-yellow-600" />;
+  const getFactCheckIcon = (impact: string) => {
+    switch (impact) {
+      case 'high': return <AlertCircle className="h-4 w-4 text-red-600" />;
+      case 'medium': return <Info className="h-4 w-4 text-yellow-600" />;
+      case 'low': return <CheckCircle className="h-4 w-4 text-green-600" />;
       default: return <Info className="h-4 w-4 text-gray-600" />;
     }
   };
 
-  const overallScore = 75; // Mock score
+  const getCategoryBadgeStyle = (category: string): string => {
+    const lowerCategory = category.toLowerCase();
+
+    // Economic axis colors
+    if (lowerCategory.includes('far left')) {
+      return 'bg-red-600 text-white border-red-600';
+    }
+    if (lowerCategory.includes('moderately left') || lowerCategory.includes('left')) {
+      return 'bg-red-400 text-white border-red-400';
+    }
+    if (lowerCategory.includes('far right')) {
+      return 'bg-blue-600 text-white border-blue-600';
+    }
+    if (lowerCategory.includes('moderately right') || lowerCategory.includes('right')) {
+      return 'bg-blue-400 text-white border-blue-400';
+    }
+
+    // Authority axis colors
+    if (lowerCategory.includes('very authoritarian') || lowerCategory.includes('far authoritarian')) {
+      return 'bg-purple-600 text-white border-purple-600';
+    }
+    if (lowerCategory.includes('moderately authoritarian') || lowerCategory.includes('authoritarian')) {
+      return 'bg-purple-400 text-white border-purple-400';
+    }
+    if (lowerCategory.includes('very libertarian') || lowerCategory.includes('far libertarian')) {
+      return 'bg-green-600 text-white border-green-600';
+    }
+    if (lowerCategory.includes('moderately libertarian') || lowerCategory.includes('libertarian')) {
+      return 'bg-green-400 text-white border-green-400';
+    }
+
+    // Centrist
+    if (lowerCategory.includes('centrist') || lowerCategory.includes('center')) {
+      return 'bg-gray-400 text-white border-gray-400';
+    }
+
+    // Default style
+    return 'bg-muted text-muted-foreground border-border';
+  };
+
+  const getImpactBadgeStyle = (impact: string): string => {
+    switch (impact) {
+      case 'high':
+        return 'bg-red-500 text-white border-red-500';
+      case 'medium':
+        return 'bg-yellow-500 text-white border-yellow-500';
+      case 'low':
+        return 'bg-green-500 text-white border-green-500';
+      default:
+        return 'bg-gray-400 text-white border-gray-400';
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -153,102 +189,70 @@ export function PlatformEvaluator({ party, isOpen, onClose }: PlatformEvaluatorP
                   </div>
                   
                   <p className="text-muted-foreground">
-                    Independent fact-checking and feasibility analysis of political promises
+                    AI-powered analysis of political platform and policy positions
                   </p>
                 </div>
               </div>
 
-              {/* Overall Score */}
-              <Card className="p-6 mb-6 bg-gradient-to-r from-primary/5 to-secondary/5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Overall Feasibility Score</h3>
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
-                    {overallScore}/100
-                  </Badge>
-                </div>
-                <Progress value={overallScore} className="h-3" />
-                <p className="text-sm text-muted-foreground mt-3">
-                  Based on economic analysis, historical precedents, and expert evaluations
-                </p>
-              </Card>
-
               {/* Policy Analysis */}
               <div className="space-y-6">
-                <h3 className="text-xl font-semibold">Policy Breakdown</h3>
-                
-                {analysisData.map((category, categoryIndex) => (
-                  <Card key={categoryIndex} className="p-6">
-                    <h4 className="text-lg font-semibold mb-4 text-primary">
-                      {category.category}
-                    </h4>
-                    
-                    <div className="space-y-4">
-                      {category.promises.map((promise, promiseIndex) => (
-                        <div key={promiseIndex} className="border rounded-lg p-4">
-                          <div className="flex items-start gap-3 mb-3">
-                            {getFactCheckIcon(promise.factCheck)}
-                            <div className="flex-1">
-                              <p className="font-medium mb-2">{promise.promise}</p>
-                              <Badge 
-                                className={`${getFeasibilityColor(promise.feasibility)} border-0`}
-                              >
-                                {promise.feasibility.toUpperCase()} FEASIBILITY
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          <div className="ml-7">
-                            <p className="text-sm text-muted-foreground mb-3">
-                              {promise.evidence}
-                            </p>
-                            
-                            <div className="space-y-2">
-                              <p className="text-xs font-medium text-muted-foreground">Sources:</p>
-                              {promise.sources.map((source, sourceIndex) => (
-                                <div key={sourceIndex} className="flex items-center gap-2">
-                                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-xs text-muted-foreground">{source}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : categorizedPolicies.length === 0 ? (
+                  <Card className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      No policy analysis data available for this party yet.
+                    </p>
                   </Card>
-                ))}
-              </div>
+                ) : (
+                  categorizedPolicies.map((categoryGroup, categoryIndex) => (
+                    <Card key={categoryIndex} className="p-6">
+                      <h4 className="text-lg font-semibold mb-4 text-primary">
+                        {categoryGroup.category}
+                      </h4>
 
-              <Separator className="my-6" />
+                      <div className="space-y-4">
+                        {categoryGroup.policies.map((policy, policyIndex) => (
+                          <div key={policyIndex} className="border rounded-lg p-4">
+                            <div className="flex items-start gap-3 mb-3">
+                              {getFactCheckIcon(policy.impact)}
+                              <div className="flex-1">
+                                <p className="font-medium mb-2">{policy.shortName}</p>
+                                <p className="text-sm text-muted-foreground mb-2">{policy.policyText}</p>
+                                <div className="flex gap-2 flex-wrap">
+                                  <Badge className={`text-xs ${getImpactBadgeStyle(policy.impact)}`}>
+                                    {policy.impact} impact
+                                  </Badge>
+                                  {policy.categories.map((cat, idx) => (
+                                    <Badge key={idx} className={`text-xs ${getCategoryBadgeStyle(cat)}`}>
+                                      {cat}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl"
-                  onClick={() => {
-                    // Mock download - in real app would generate PDF report
-                    alert('Detailed report would be downloaded as PDF');
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Full Report
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl"
-                  onClick={() => window.open('https://factcheck.org', '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Methodology
-                </Button>
+                            <div className="ml-7 space-y-3">
+                              {policy.explanation && (
+                                <p className="text-sm text-muted-foreground">
+                                  {policy.explanation}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  ))
+                )}
               </div>
 
               <div className="mt-6 p-4 bg-muted/30 rounded-xl">
                 <p className="text-xs text-muted-foreground text-center">
-                  This analysis is generated by independent fact-checking organizations and economic research institutes. 
-                  Last updated: {new Date().toLocaleDateString()}
+                  This analysis is generated by AI based on party platforms and policy documents.
+                  {policies.length > 0 && ` Analyzing ${policies.length} ${policies.length === 1 ? 'policy' : 'policies'}.`}
                 </p>
               </div>
             </div>
