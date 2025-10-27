@@ -1,43 +1,127 @@
 import initSqlJs, { Database } from 'sql.js';
 import { Country, PoliticalParty, Ideology, LLMPolicyResponse, PolicyAnalysis } from '@/types/political';
 
-let db: Database | null = null;
-let initPromise: Promise<void> | null = null;
+type PgPool = {
+  query: (text: string, params?: unknown[]) => Promise<{ rows: any[] }>;
+};
 
-// Initialize the database
-async function initDatabase(): Promise<void> {
-  if (db) return;
+let sqliteDb: Database | null = null;
+let sqliteInitPromise: Promise<Database> | null = null;
+let pgPool: PgPool | null = null;
+let pgInitPromise: Promise<PgPool> | null = null;
 
-  if (initPromise) {
-    await initPromise;
-    return;
+const databaseUrl = typeof process !== 'undefined' ? process.env?.DATABASE_URL : undefined;
+const isServerEnvironment = typeof window === 'undefined';
+const usePostgres = Boolean(databaseUrl) && isServerEnvironment;
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  'Czech Republic': '🇨🇿',
+  'Slovakia': '🇸🇰',
+  'Poland': '🇵🇱',
+  'Germany': '🇩🇪',
+  'Austria': '🇦🇹',
+  'Hungary': '🇭🇺',
+  'United States': '🇺🇸',
+  'United Kingdom': '🇬🇧',
+  'France': '🇫🇷',
+};
+
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
   }
 
-  initPromise = (async () => {
-    try {
-      // Initialize SQL.js
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? null : value;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function resolvePgSslConfig(url: string): boolean | { rejectUnauthorized: boolean } {
+  return /localhost|127\.0\.0\.1/i.test(url) ? false : { rejectUnauthorized: false };
+}
+
+async function ensurePostgres(): Promise<PgPool> {
+  if (!usePostgres) {
+    throw new Error('Postgres is not enabled');
+  }
+
+  if (pgPool) {
+    return pgPool;
+  }
+
+  if (!pgInitPromise) {
+    pgInitPromise = (async () => {
+      if (!databaseUrl) {
+        throw new Error('DATABASE_URL is not defined');
+      }
+
+      const moduleName = 'pg';
+      let pgModule: unknown;
+      try {
+        pgModule = await import(/* @vite-ignore */ moduleName);
+      } catch (error) {
+        throw new Error('Postgres support requires the optional dependency "pg". Please install it (npm install pg) before enabling DATABASE_URL.');
+      }
+
+      const PoolConstructor = (pgModule as unknown as { Pool?: new (config: unknown) => PgPool }).Pool;
+      if (!PoolConstructor) {
+        throw new Error('Failed to load Postgres driver. Ensure the "pg" package is installed correctly.');
+      }
+      const pool: PgPool = new PoolConstructor({
+        connectionString: databaseUrl,
+        ssl: resolvePgSslConfig(databaseUrl)
+      });
+
+      await pool.query('SELECT 1');
+      pgPool = pool;
+      return pool;
+    })();
+  }
+
+  try {
+    return await pgInitPromise;
+  } catch (error) {
+    pgInitPromise = null;
+    pgPool = null;
+    throw error;
+  }
+}
+
+async function ensureSqlite(): Promise<Database> {
+  if (sqliteDb) {
+    return sqliteDb;
+  }
+
+  if (!sqliteInitPromise) {
+    sqliteInitPromise = (async () => {
       const SQL = await initSqlJs({
         locateFile: (file) => `https://sql.js.org/dist/${file}`
       });
 
-      // Fetch the database file
       const response = await fetch('/data.db');
       if (!response.ok) {
         throw new Error(`Failed to fetch database: ${response.statusText}`);
       }
 
       const buffer = await response.arrayBuffer();
-      db = new SQL.Database(new Uint8Array(buffer));
+      sqliteDb = new SQL.Database(new Uint8Array(buffer));
+      console.log('SQLite database initialized successfully');
+      return sqliteDb;
+    })();
+  }
 
-      console.log('Database initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize database:', error);
-      throw error;
-    }
-  })();
-
-  await initPromise;
+  try {
+    return await sqliteInitPromise;
+  } catch (error) {
+    sqliteInitPromise = null;
+    sqliteDb = null;
+    throw error;
+  }
 }
+
 
 // Helper function to determine ideology based on coordinates
 function determineIdeology(leftRight: number, authLib: number): Ideology {
@@ -183,13 +267,35 @@ function parseLLMResponse(response: string): { left_right: number; auth_lib: num
 
 // Fetch countries
 export async function fetchCountries(): Promise<Country[]> {
-  await initDatabase();
+  if (usePostgres) {
+    try {
+      const pool = await ensurePostgres();
+      const { rows } = await pool.query(`
+        SELECT DISTINCT country
+        FROM parties
+        ORDER BY country
+      `);
 
-  if (!db) {
-    throw new Error('Database not initialized');
+      if (!rows.length) {
+        return [];
+      }
+
+      return rows
+        .map((row) => row.country as string | null)
+        .filter((name): name is string => typeof name === 'string' && name.length > 0)
+        .map((name) => ({
+          code: name,
+          name,
+          flag: COUNTRY_FLAGS[name]
+        }));
+    } catch (error) {
+      console.error('Error fetching countries from Postgres:', error);
+      return [];
+    }
   }
 
   try {
+    const db = await ensureSqlite();
     const result = db.exec(`
       SELECT DISTINCT country
       FROM parties
@@ -200,42 +306,58 @@ export async function fetchCountries(): Promise<Country[]> {
       return [];
     }
 
-    const countryFlags: Record<string, string> = {
-      'Czech Republic': '🇨🇿',
-      'Slovakia': '🇸🇰',
-      'Poland': '🇵🇱',
-      'Germany': '🇩🇪',
-      'Austria': '🇦🇹',
-      'Hungary': '🇭🇺',
-      'United States': '🇺🇸',
-      'United Kingdom': '🇬🇧',
-      'France': '🇫🇷',
-    };
-
-    return result[0].values.map((row) => {
-      const name = row[0] as string;
-      return {
-        code: name, // Use full name as code since that's what's in the database
-        name: name,
-        flag: countryFlags[name]
-      };
-    });
+    return result[0].values
+      .map((row) => row[0] as string | null)
+      .filter((name): name is string => typeof name === 'string' && name.length > 0)
+      .map((name) => ({
+        code: name,
+        name,
+        flag: COUNTRY_FLAGS[name]
+      }));
   } catch (error) {
-    console.error('Error fetching countries:', error);
+    console.error('Error fetching countries from SQLite:', error);
     return [];
   }
 }
 
 // Fetch parties for a country
 export async function fetchParties(countryCode: string): Promise<PoliticalParty[]> {
-  await initDatabase();
+  if (usePostgres) {
+    try {
+      const pool = await ensurePostgres();
+      const { rows } = await pool.query(`
+        SELECT id, name, type, country, founded, website, econ_freedom, personal_freedom
+        FROM parties
+        WHERE country = $1
+        ORDER BY name
+      `, [countryCode]);
 
-  if (!db) {
-    throw new Error('Database not initialized');
+      if (!rows.length) {
+        return [];
+      }
+
+      return rows.map((row) => {
+        const dbParty: DBParty = {
+          id: row.id as string,
+          name: row.name as string,
+          type: row.type as string,
+          country: row.country as string,
+          founded: toNullableNumber(row.founded),
+          website: (row.website as string | null) ?? null,
+          econ_freedom: toNullableNumber(row.econ_freedom),
+          personal_freedom: toNullableNumber(row.personal_freedom),
+        };
+
+        return transformDBPartyToAppParty(dbParty);
+      });
+    } catch (error) {
+      console.error(`Error fetching parties for ${countryCode} from Postgres:`, error);
+      return [];
+    }
   }
 
   try {
-    // Get all parties for the country
+    const db = await ensureSqlite();
     const partiesResult = db.exec(`
       SELECT id, name, type, country, founded, website, econ_freedom, personal_freedom
       FROM parties
@@ -266,20 +388,76 @@ export async function fetchParties(countryCode: string): Promise<PoliticalParty[
 
     return parties;
   } catch (error) {
-    console.error(`Error fetching parties for ${countryCode}:`, error);
+    console.error(`Error fetching parties for ${countryCode} from SQLite:`, error);
     return [];
   }
 }
 
 // Fetch party policies from llm_responses table
 export async function fetchPartyPolicies(partyId: string): Promise<PolicyAnalysis[]> {
-  await initDatabase();
+  if (usePostgres) {
+    try {
+      const pool = await ensurePostgres();
+      const { rows } = await pool.query(`
+        SELECT
+          id, party_id, country, timestamp, chunk_index, policy_id,
+          policy_text, short_name, impact, impact_explanation,
+          category, explanation, econ_freedom, personal_freedom, weight, error
+        FROM llm_responses
+        WHERE party_id = $1 AND policy_text IS NOT NULL AND error IS NULL
+        ORDER BY chunk_index, policy_id
+      `, [partyId]);
 
-  if (!db) {
-    throw new Error('Database not initialized');
+      if (!rows.length) {
+        return [];
+      }
+
+      const policies: PolicyAnalysis[] = [];
+
+      for (const row of rows) {
+        const policyText = row.policy_text as string | null;
+        const shortName = row.short_name as string | null;
+        const impact = row.impact as string | null;
+        const impactExplanation = row.impact_explanation as string | null;
+        const categoryJson = row.category as string | null;
+        const explanation = row.explanation as string | null;
+        const econFreedom = toNullableNumber(row.econ_freedom);
+        const personalFreedom = toNullableNumber(row.personal_freedom);
+
+        if (!policyText || !shortName) {
+          continue;
+        }
+
+        let categories: string[] = [];
+        if (categoryJson) {
+          try {
+            const parsed = JSON.parse(categoryJson);
+            categories = Array.isArray(parsed) ? parsed : [];
+          } catch (e) {
+            console.warn('Failed to parse category JSON:', categoryJson);
+          }
+        }
+
+        policies.push({
+          policyText,
+          shortName,
+          impact: (impact as 'high' | 'medium' | 'low') || 'medium',
+          categories,
+          explanation: explanation || impactExplanation || '',
+          econFreedom,
+          personalFreedom
+        });
+      }
+
+      return policies;
+    } catch (error) {
+      console.error(`Error fetching policies for party ${partyId} from Postgres:`, error);
+      return [];
+    }
   }
 
   try {
+    const db = await ensureSqlite();
     const result = db.exec(`
       SELECT
         id, party_id, country, timestamp, chunk_index, policy_id,
@@ -306,12 +484,10 @@ export async function fetchPartyPolicies(partyId: string): Promise<PolicyAnalysi
       const econFreedom = row[12] as number | null;
       const personalFreedom = row[13] as number | null;
 
-      // Skip if essential fields are missing
       if (!policyText || !shortName) {
         continue;
       }
 
-      // Parse category JSON array
       let categories: string[] = [];
       if (categoryJson) {
         try {
@@ -335,7 +511,7 @@ export async function fetchPartyPolicies(partyId: string): Promise<PolicyAnalysi
 
     return policies;
   } catch (error) {
-    console.error(`Error fetching policies for party ${partyId}:`, error);
+    console.error(`Error fetching policies for party ${partyId} from SQLite:`, error);
     return [];
   }
 }
