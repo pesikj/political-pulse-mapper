@@ -1,4 +1,4 @@
-import { fetchPartyPoliciesFromDatabase } from './databaseService';
+import { fetchPartyPoliciesFromDatabase } from './databaseService.js';
 
 export const config = {
   runtime: 'nodejs',
