@@ -1,4 +1,4 @@
-import { fetchCountriesFromDatabase } from './databaseService';
+import { fetchCountriesFromDatabase } from './databaseService.js';
 
 export const config = {
   runtime: 'nodejs',

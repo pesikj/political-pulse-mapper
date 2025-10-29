@@ -1,4 +1,4 @@
-import { fetchPartiesFromDatabase } from './databaseService';
+import { fetchPartiesFromDatabase } from './databaseService.js';
 
 export const config = {
   runtime: 'nodejs',
