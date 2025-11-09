@@ -17,7 +17,7 @@ Check out the live application: [https://political-pulse-mapper.vercel.app/](htt
 
 ```sh
 # Clone the repository
-git clone <YOUR_GIT_URL>
+git clone https://github.com/pesikj/political-pulse-mapper
 
 # Navigate to the project directory
 cd political-pulse-mapper
