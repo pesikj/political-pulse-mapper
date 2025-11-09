@@ -1,73 +1,47 @@
-# Welcome to your Lovable project
+# Political Pulse Mapper
 
-## Project info
+An interactive visualization tool that maps political parties across different countries on a two-dimensional political compass. The application analyzes party positions based on economic freedom and personal freedom dimensions, providing insights into the political landscape.
 
-**URL**: https://lovable.dev/projects/b509bb81-624c-4d27-af1b-91c70caeace3
+## Live Demo
 
-## How can I edit this code?
+Check out the live application: [https://political-pulse-mapper.vercel.app/](https://political-pulse-mapper.vercel.app/)
 
-There are several ways of editing your application.
+## Running the Project
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b509bb81-624c-4d27-af1b-91c70caeace3) and start prompting.
+- Node.js and npm installed ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- PostgreSQL database (you'll need a `DATABASE_URL` connection string)
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation and Development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd political-pulse-mapper
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Create a .env file and add your database connection string
+echo "DATABASE_URL=your_postgresql_connection_string" > .env
+
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173` (or another port if 5173 is in use).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build for Production
 
-**Use GitHub Codespaces**
+```sh
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Preview Production Build
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b509bb81-624c-4d27-af1b-91c70caeace3) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```sh
+npm run preview
+```
