@@ -392,10 +392,10 @@ export async function fetchPartyPoliciesFromDatabase(partyId: string): Promise<P
       const { rows } = await pool.query(`
         SELECT
           id, party_id, country, timestamp, chunk_index, policy_id,
-          policy_text, short_name, impact, impact_explanation,
+          policy, short_name, impact, impact_explanation,
           category, explanation, econ_freedom, personal_freedom, weight, error
         FROM llm_responses
-        WHERE party_id = $1 AND policy_text IS NOT NULL AND error IS NULL
+        WHERE party_id = $1 AND policy IS NOT NULL AND error IS NULL
         ORDER BY chunk_index, policy_id
       `, [partyId]);
 
@@ -406,7 +406,7 @@ export async function fetchPartyPoliciesFromDatabase(partyId: string): Promise<P
       const policies: PolicyAnalysis[] = [];
 
       for (const row of rows) {
-        const policyText = row.policy_text as string | null;
+        const policyText = row.policy as string | null;
         const shortName = row.short_name as string | null;
         const impact = row.impact as string | null;
         const impactExplanation = row.impact_explanation as string | null;
@@ -452,10 +452,10 @@ export async function fetchPartyPoliciesFromDatabase(partyId: string): Promise<P
     const result = db.exec(`
       SELECT
         id, party_id, country, timestamp, chunk_index, policy_id,
-        policy_text, short_name, impact, impact_explanation,
+        policy, short_name, impact, impact_explanation,
         category, explanation, econ_freedom, personal_freedom, weight, error
       FROM llm_responses
-      WHERE party_id = ? AND policy_text IS NOT NULL AND error IS NULL
+      WHERE party_id = ? AND policy IS NOT NULL AND error IS NULL
       ORDER BY chunk_index, policy_id
     `, [partyId]);
 
